@@ -1,0 +1,38 @@
+name: Daily NSE Screener
+
+on:
+  schedule:
+    # Monday-Friday, 13:00 UTC = 6:30 PM IST
+    - cron: "0 13 * * 1-5"
+  workflow_dispatch:   # "Run workflow" button se haath se bhi chala sakte ho
+
+permissions:
+  contents: write
+
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install libraries
+        run: pip install yfinance pandas requests
+
+      - name: Run screener
+        run: python screener.py
+
+      - name: Publish results
+        run: |
+          mkdir -p docs
+          cp screener_results.html docs/index.html
+          cp screener_results.csv docs/screener_results.csv
+          git config user.name "screener-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add docs symbols.txt
+          git diff --cached --quiet || git commit -m "Screener update $(date -u +%F)"
+          git push
